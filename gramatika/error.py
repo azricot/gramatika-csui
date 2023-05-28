@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 
+import string
 import random
 
 
@@ -195,7 +196,45 @@ class NounInflectionError(Error):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+    
+        token = self.token
+        sentence = self.sentence
+        
+        if (token.upos=='NOUN' and (token.morf.count('peN+') == 1 or token.morf.count('pe+') == 1 or token.morf.count('per+') == 1) and not token.morf.count('+an') > 0):
+            
+            self.original_token_list = [token]
+            self.error_token_list = [""]
+        
+            if token.form[:3].lower() == "per":
+                self.error_token_list = "pe" + token.lemma
+            else :
+                self.error_token_list = "per" + token.lemma
+
+            print("halo")
+            self.error_type = "|||R:NOUN:INFL|||"
+            self.related_token_id = [token.id]
+        
+        elif (token.upos == 'NOUN' and token.morf.count('peN+') == 1 and token.morf.count('+an') == 1):
+
+            ubah_kata = ""
+        
+            if token.form[:3].lower() == "pem" or token.form[:3].lower() == "pen":
+                ubah_kata = "pe" + token.lemma + "an"
+            elif token.form[:3].lower() == "peng":
+                ubah_kata = "pe" + token.lemma + "an"
+            elif token.form[:3].lower() == "peny":
+                ubah_kata = "pen" + token.lemma + "an"
+        #else:
+          #output = [0]
+          #return output
+            print("halo")
+            self.original_token_list = [token]
+            self.error_token_list = [ubah_kata]
+
+            self.error_type = "|||R:NOUN:INFL|||"
+            self.related_token_id = [token.id]
+
+
 
 
 
@@ -298,15 +337,90 @@ class PrepositionError(Error):
 
 
 class PronounError(Error):
-
+    
     error_type_id = "PRON"
     max_ratio = 0.1
+    
+    persona_pronoun_errors = {
+        "tunggal_pertama": [
+                "saya", 
+                "ku", 
+                "aku"
+                ]
+        ,
+        "tunggal_pertama_banyak_eksklusif": [
+                "kami"
+                ]
+        ,
+        "tunggal_pertama_banyak_inklusif":[
+                "kita"
+                ]
+        ,
+        "tunggal_kedua": [
+                "engkau",
+                "kamu",
+                "anda",
+                "dikau"
+                ]
+        ,
+        "tunggal_kedua_jamak":[
+                "kalian",
+                "kamu sekalian",
+                "anda sekalian",
+                ]
+        ,
+        "tunggal_ketiga":[
+                "ia",
+                "dia",
+                "beliau",
+                ]
+        ,
+        "tunggal_kedua_jamak": [
+                "mereka"
+                ]
+    }
 
+    pronomina_penanya = ["siapa","apa","mana","mengapa","kenapa","kapan","di mana", "ke mana", "dari mana", "bagaimana",  "berapa" ]
+
+    list_all_persona_pronoun = list(persona_pronoun_errors.values())
+    list_all_persona_pronoun = [item for sublist in list_all_persona_pronoun for item in sublist]
+    
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+        token = self.token
+        sentence = self.sentence
+
+        if (token.upos == 'PRON' and token.form in self.list_all_persona_pronoun):
+            self.error_token_list = random.choice ([value for key, value in self.persona_pronoun_errors.items() if key not in self.list_blacklist_persona_pronoun(token.form)])[0].split(" ")
+            self.original_token_list = [token]
+
+            self.error_type = "|||R:PRON|||"
+            self.related_token_id = [token.id]
+
+        elif (token.upos == 'PRON' and token.form in self.pronomina_penanya):
+
+            if token.form == "mengapa" or token.form == "kenapa" :
+                tmp_pronomina_penanya = pronomina_penanya.copy()
+                tmp_pronomina_penanya.pop(tmp_pronomina_penanya.index("mengapa"))
+                tmp_pronomina_penanya.pop(tmp_pronomina_penanya.index("kenapa"))
+                self.error_token_list = [token.form.replace(token.lemma, random.choice(tmp_pronomina_penanya)).split()]
+            else:
+                tmp_pronomina_penanya = self.pronomina_penanya.copy()
+                tmp_pronomina_penanya.pop(tmp_pronomina_penanya.index(token.lemma))
+                self.error_token_list = [random.choice(tmp_pronomina_penanya).split()]
+
+            self.original_token_list = [token]
+
+            self.error_type = "|||R:PRON|||"
+            self.related_token_id = [token.id]
+    
+    def list_blacklist_persona_pronoun(self, kata):
+        for key,value in self.persona_pronoun_errors.items():
+            if kata in value:
+                return [key]
+        return []
 
 
 class PunctuationError(Error):
@@ -318,10 +432,41 @@ class PunctuationError(Error):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+        
+        token = self.token
+        sentence = self.sentence
+        ada_Anak_Kalimat = 0
+        ada_Kalimat_tambahan = 0
+        
+        if token.deprel in {'advcl', 'obl'} :
+            ada_Anak_Kalimat = 1
+              
+        if token.deprel in {'appos'} :
+            ada_Kalimat_tambahan  = 1
+
+        token_id_after = token.id + 1
+        token_after = None
+        if sentence.does_token_id_exists(token_id_after):
+            token_after = sentence.get_token_by_id(token_id_after)
+
+        if (token.upos == 'PUNCT'and token.lemma == "," and token_after != None  and token_after.upos=='CCONJ' and token_after.lemma in {"dan","atau","tetapi","melainkan","sedangkan"}):
+            self.original_token_list = [token]
+            self.error_token_list = [""]
+
+            self.error_type = "|||M:PUNCT|||"
+            self.related_token_id = [token.id]
+
+        elif ((ada_Anak_Kalimat == 1 or ada_Kalimat_tambahan == 1) and token.lemma == ","  ): 
+            self.original_token_list = [token]
+            self.error_token_list = [""]
+
+            self.error_type = "|||M:PUNCT|||"
+            self.related_token_id = [token.id]
+            
+       
 
 
-class SpellingError(Error):
+class SpellingError(Error): #Membuat spelling error
 
     error_type_id = "SPELL"
     max_ratio = 0.1
@@ -330,7 +475,46 @@ class SpellingError(Error):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+        token = self.token
+        sentence = self.sentence
+        rand = random.randrange(1,4)
+        apakah_akan_dilakukan = random.randrange(1,20)
+
+        if apakah_akan_dilakukan == 1 and rand == 1 and token.form.isalpha() and len(token.form) > 3: ## Erase one char
+        
+            self.original_token_list = [token]
+            index = random.randrange(0, len(token.form)-1)
+            self.error_token_list = [token.form[:index] + token.form[index + 1: ]]
+
+            self.error_type = "|||R:SPELL|||"
+            self.related_token_id = [token.id]
+      
+        elif apakah_akan_dilakukan == 1 and rand == 2 and token.form.isalpha() and len(token.form) > 3: ## Add one char
+            
+            self.original_token_list = [token]
+            noise_char = random.choice(string.ascii_lowercase)
+            index = random.randrange(0, len(token.form)-1)
+            self.error_token_list = [token.form[:index] + noise_char + token.form[index + 1: ]]
+
+            self.error_type = "|||R:SPELL|||"
+            self.related_token_id = [token.id]
+
+        elif apakah_akan_dilakukan == 1 and rand == 3 and token.form.isalpha() and len(token.form) > 3: ## Tukar char sebelahnya
+            
+            self.original_token_list = [token]
+            index = random.randrange(1, len(token.form)-2)
+            self.error_token_list  = [token.form[:index] + token.form[index+1] + token.form[index]  + token.form[index + 2: ]]
+            
+            self.error_type = "|||R:SPELL|||"
+            self.related_token_id = [token.id]
+
+        elif apakah_akan_dilakukan == 1 and rand == 4 and token.form.isalpha() and len(token.form) > 3 and len(list(filter(lambda x: x in huruf_hidup, token.lemma))) > 0: ## Add one random char
+            
+            self.original_token_list = [token]
+            self.error_token_list = [re.sub("[aeiou]","",token.form)]
+
+            self.error_type = "|||R:SPELL|||"
+            self.related_token_id = [token.id]
 
 
 class VerbError(Error):
