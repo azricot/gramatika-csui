@@ -466,7 +466,7 @@ class PunctuationError(Error):
        
 
 
-class SpellingError(Error):
+class SpellingError(Error): #Membuat spelling error
 
     error_type_id = "SPELL"
     max_ratio = 0.1
