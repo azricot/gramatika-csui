@@ -373,7 +373,6 @@ class PronounError(Error):
                 "ia",
                 "dia",
                 "beliau",
-                #"nya"
                 ]
         ,
         "tunggal_kedua_jamak": [
