@@ -199,8 +199,7 @@ class NounInflectionError(Error):
     
         token = self.token
         sentence = self.sentence
-        
-        if (token.upos=='NOUN' and (token.morf.count('peN+') == 1 or token.morf.count('pe+') == 1 or token.morf.count('per+') == 1) and not token.morf.count('+an') > 0):
+        if (token.upos=='NOUN' and (token.morf.count('peN') == 1 or token.morf.count('pe') == 1 or token.morf.count('per') == 1) and token.morf.count('an') == 0):
             
             self.original_token_list = [token]
             self.error_token_list = [""]
@@ -210,24 +209,26 @@ class NounInflectionError(Error):
             else :
                 self.error_token_list = "per" + token.lemma
 
-            print("halo")
             self.error_type = "|||R:NOUN:INFL|||"
             self.related_token_id = [token.id]
         
-        elif (token.upos == 'NOUN' and token.morf.count('peN+') == 1 and token.morf.count('+an') == 1):
+        elif (token.upos=='NOUN' and (token.morf.count('peN') == 1 or token.morf.count('pe') == 1 or token.morf.count('per') == 1) and token.morf.count('an') == 1):
 
             ubah_kata = ""
         
-            if token.form[:3].lower() == "pem" or token.form[:3].lower() == "pen":
-                ubah_kata = "pe" + token.lemma + "an"
-            elif token.form[:3].lower() == "peng":
-                ubah_kata = "pe" + token.lemma + "an"
+            if token.form[:3].lower() == "pem" or token.form[:3].lower() == "pen" or token.form[:3].lower() == "peng" or token.form[:3].lower() == "per":
+                ubah_kata = "pe" + token.lemma 
             elif token.form[:3].lower() == "peny":
-                ubah_kata = "pen" + token.lemma + "an"
+                ubah_kata = "pen" + token.lemma
+            
+            if token.lemma[-1] == "a":
+                ubah_kata = ubah_kata + "n"
+            else :
+                ubah_kata = ubah_kata + "an"
         #else:
           #output = [0]
           #return output
-            print("halo")
+            
             self.original_token_list = [token]
             self.error_token_list = [ubah_kata]
 
