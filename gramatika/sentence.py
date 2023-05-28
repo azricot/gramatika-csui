@@ -102,13 +102,6 @@ class Sentence():
         self.clean_maximum_error_in_sentence()
         self.resort_for_output()
 
-        # if len(self.error_list):
-        #     print("____________________")
-        # for error in self.error_list:
-        #     print(error.token)
-        #     print(error.error_type_id)
-        #     print(error.get_ratio())
-
     def filter_by_max_ratio(self):
         self.error_list = [error for error in self.error_list if error.is_below_max_ratio()]
 
@@ -210,10 +203,10 @@ class Sentence():
                 self.__morf = morf_list
 
             # SpaceAfter Attribute
-            if 'SpaceAfter' in self.token_conll['misc']:
-                self.__space_after = True
-            else:
+            if 'SpaceAfter' in self.token_conll['misc'] and self.token_conll['misc']['SpaceAfter'] == "No":
                 self.__space_after = False
+            else:
+                self.__space_after = True
 
         @property
         def token_conll(self):
