@@ -508,7 +508,7 @@ class SpellingError(Error):
             self.error_type = "|||R:SPELL|||"
             self.related_token_id = [token.id]
 
-        elif apakah_akan_dilakukan == 1 and rand == 4 and token.form.isalpha() and len(token.form) > 3 and len(list(filter(lambda x: x in huruf_hidup, token.lemma))) > 0: ## Add one char
+        elif apakah_akan_dilakukan == 1 and rand == 4 and token.form.isalpha() and len(token.form) > 3 and len(list(filter(lambda x: x in huruf_hidup, token.lemma))) > 0: ## Add one random char
             
             self.original_token_list = [token]
             self.error_token_list = [re.sub("[aeiou]","",token.form)]
