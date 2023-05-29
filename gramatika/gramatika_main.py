@@ -23,7 +23,7 @@ from .error import (
 from conllu import parse
 
 from tqdm import tqdm
-import json
+import random
 
 
 class GramatikaDataset():
@@ -36,6 +36,7 @@ class GramatikaDataset():
 
         self.max_error_in_sentence = args.max_error_in_sentence
         self.max_same_error_in_sentence = args.max_same_error_in_sentence
+        self.no_error_sentence_ratio = args.no_error_sentence_ratio
 
         # Initiate all error types
         list_of_all_error_classes = [
@@ -85,8 +86,12 @@ class GramatikaDataset():
         return self.get_sinonim_dict().get_most_similar(word.lower())
 
     def generate_dataset(self):
-        with open(self.input_filename, "r", encoding="utf8") as file_input:
+        with open(self.input_filename, "r", encoding="utf8", errors='ignore') as file_input:
             output_conll = parse(file_input.read())
+
+        # Shuffle parsed output_conll randomly every time code runs
+        # so the resulting dataset will also be randomized
+        random.shuffle(output_conll)
 
         # Create Sentence objects
         for sentence_conll in tqdm(output_conll):
@@ -95,8 +100,8 @@ class GramatikaDataset():
                 dataset=self
             )
 
-            if sentence.has_error():
-                # Only save sentence object if it has errors
+            if sentence.is_valid():
+                # Only save sentence object if it is valid to be saved
                 self.sentence_list.append(sentence)
 
         self.output_dataset()
@@ -145,4 +150,29 @@ class GramatikaDataset():
         with open(self.output_filename, "w", encoding="utf8") as file_output:
             file_output.write("\n\n".join(result))
 
+        # Write stats of dataset
+        output_file_name = self.output_filename[:self.output_filename.rfind(".")]
+        stats_filename = f"{output_file_name}_statistics.txt"
+
+        with open(stats_filename, "w", encoding="utf8") as stat_file_output:
+            # Total Data
+            total_data = len(self.sentence_list)
+            total_with_error = len([sentence for sentence in self.sentence_list if sentence.has_error()])
+            total_without_error = len([sentence for sentence in self.sentence_list if not sentence.has_error()])
             
+            stat_file_output.write(f"Total Kalimat: {total_data}\n")
+            stat_file_output.write(f"Total Kalimat dengan Error: {total_with_error} ({total_with_error / total_data * 100:.2f}%)\n")
+            stat_file_output.write(f"Total Kalimat tanpa Error: {total_without_error} ({total_without_error / total_data * 100:.2f}%)\n\n")
+            
+            total_all_error = self.get_total_error()
+
+            # Total Error yang dibangkitkan
+            stat_file_output.write(f"Total Error Dibangkitkan: {total_all_error}\n\n")
+
+            stat_file_output.write(f"Total Tiap Jenis Error:\n")
+            # Number of and percentage of each error type
+            for error_type_id in self.error_dict.keys():
+                total_each_error_type = self.error_dict[error_type_id]["count"]
+                ratio_each_error_type = total_each_error_type / total_all_error * 100
+
+                stat_file_output.write(f"- {error_type_id}: {total_each_error_type} ({ratio_each_error_type:.2f}%)\n")
