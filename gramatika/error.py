@@ -3,9 +3,14 @@ from abc import ABC, abstractmethod
 
 import string
 import random
+import re
 
 
 class Error(ABC):
+
+    konsonan_luluh = ['k', 't', 's', 'p']
+    huruf_hidup = ['a', 'i', 'u', 'e', 'o']
+
     error_type: str
     max_ratio: float
 
@@ -26,18 +31,23 @@ class Error(ABC):
         pass
 
     def is_valid(self):
+        # Is error valid or not (is error generated correctly)
         return self.error_type and len(self.original_token_list) and len(self.error_token_list)
     
     def get_original_form(self):
+        # Get Original Token Form in String
         return " ".join([token.form for token in self.original_token_list])
     
     def get_error_form(self):
+        # Get Error Form in String
         return " ".join([error_form for error_form in self.error_token_list if error_form != ""])
     
     def get_len_error_token_list(self):
+        # Get length of error list (number of token)
         return len([error for error in self.error_token_list if error != ""])
     
     def get_len_original_token_list(self):
+        # Get length of original token list (number of token)
         return len([original for original in self.original_token_list if original != ""])
     
     def get_edit_offset(self):
@@ -234,10 +244,7 @@ class ConjunctionError(Error):
 
         token_form_lower = token.form.lower()
 
-        if (
-            token_form_lower in self.always_treat_as_CONJ_list 
-            and len(self.list_conjunction_error_substitution[token_form_lower]) > 0
-        ):
+        if len(self.list_conjunction_error_substitution.get(token_form_lower, [])) > 0:
             self.original_token_list = [token]
             self.error_token_list = random.choice(self.list_conjunction_error_substitution[token_form_lower]).split(" ")
 
@@ -262,7 +269,7 @@ class DeterminerError(Error):
 
         if token.upos == 'DET' and token.lemma in self.penggolong_word_list:
             self.original_token_list = [token]
-            self.error_token_list = [token.form.replace(token.lemma, random.choice([penggolong for penggolong in self.penggolong_word_list if penggolong != token.lemma]))]
+            self.error_token_list = token.form.replace(token.lemma, random.choice([penggolong for penggolong in self.penggolong_word_list if penggolong != token.lemma])).split(" ")
 
             self.error_type = "|||R:DET|||"
             self.related_token_id = [token.id]
@@ -277,6 +284,8 @@ class DeterminerError(Error):
 
 class MorphologyError(Error):
 
+    deprel_nominals = ["nsubj", "obj", "iobj", "obl"]
+
     error_type_id = "MORPH"
     max_ratio = 0.1
 
@@ -284,7 +293,42 @@ class MorphologyError(Error):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+        token = self.token
+        sentence = self.sentence
+
+        token_id_after = token.id + 1
+        token_after = None
+        if sentence.does_token_id_exists(token_id_after):
+            token_after = sentence.get_token_by_id(token_id_after)
+
+        token_morf_plus_sign = "+".join(token.morf)
+        if (
+            (
+                token.upos == 'VERB' 
+                and token_morf_plus_sign.count('ber+') == 1 
+                and token_morf_plus_sign.count('+') == 1
+            )
+            and not
+            (
+                token_after is not None and token_after.deprel in self.deprel_nominals
+            )
+        ):
+            self.original_token_list = [token]
+            self.error_token_list = sentence.dataset.get_most_similar("pe" + token.lemma + 'an').split(" ")
+            
+            self.error_type = "|||R:MORPH|||"
+            self.related_token_id = [token.id]
+
+        elif (
+            token.upos == 'NOUN' 
+            and token_morf_plus_sign.count('per+') == 1
+            and token_morf_plus_sign.count('+an') == 1
+        ):
+            self.original_token_list = [token]
+            self.error_token_list = sentence.dataset.get_most_similar("ber" + token.lemma).split(" ")
+            
+            self.error_type = "|||R:MORPH|||"
+            self.related_token_id = [token.id]
 
 
 class NounError(Error):
@@ -327,16 +371,16 @@ class NounInflectionError(Error):
     def generate_error(self):
     
         token = self.token
-        sentence = self.sentence
+        
         if (token.upos=='NOUN' and (token.morf.count('peN') == 1 or token.morf.count('pe') == 1 or token.morf.count('per') == 1) and token.morf.count('an') == 0):
             
             self.original_token_list = [token]
             self.error_token_list = [""]
         
             if token.form[:3].lower() == "per":
-                self.error_token_list = "pe" + token.lemma
+                self.error_token_list = ("pe" + token.lemma).split(" ")
             else :
-                self.error_token_list = "per" + token.lemma
+                self.error_token_list = ("per" + token.lemma).split(" ")
 
             self.error_type = "|||R:NOUN:INFL|||"
             self.related_token_id = [token.id]
@@ -371,7 +415,7 @@ class NounInflectionError(Error):
 class OrthographyError(Error):
     
     error_type_id = "ORTH"
-    max_ratio = 0.2
+    max_ratio = 0.1
 
     orth_prefix_types = ["di", "ke", "ter", "ber", "per"]
     orth_suffix_types = ["nya", "lah", "pun", "kah"]
@@ -595,10 +639,9 @@ class PronounError(Error):
 
     def generate_error(self):
         token = self.token
-        sentence = self.sentence
 
         if (token.upos == 'PRON' and token.form in self.list_all_persona_pronoun):
-            self.error_token_list = random.choice ([value for key, value in self.persona_pronoun_errors.items() if key not in self.list_blacklist_persona_pronoun(token.form)])[0].split(" ")
+            self.error_token_list = random.choice(random.choice([value for key, value in self.persona_pronoun_errors.items() if key not in self.list_blacklist_persona_pronoun(token.form)])).split(" ")
             self.original_token_list = [token]
 
             self.error_type = "|||R:PRON|||"
@@ -607,14 +650,14 @@ class PronounError(Error):
         elif (token.upos == 'PRON' and token.form in self.pronomina_penanya):
 
             if token.form == "mengapa" or token.form == "kenapa" :
-                tmp_pronomina_penanya = pronomina_penanya.copy()
+                tmp_pronomina_penanya = self.pronomina_penanya.copy()
                 tmp_pronomina_penanya.pop(tmp_pronomina_penanya.index("mengapa"))
                 tmp_pronomina_penanya.pop(tmp_pronomina_penanya.index("kenapa"))
-                self.error_token_list = [token.form.replace(token.lemma, random.choice(tmp_pronomina_penanya)).split()]
+                self.error_token_list = token.form.replace(token.lemma, random.choice(tmp_pronomina_penanya)).split(" ")
             else:
                 tmp_pronomina_penanya = self.pronomina_penanya.copy()
                 tmp_pronomina_penanya.pop(tmp_pronomina_penanya.index(token.lemma))
-                self.error_token_list = [random.choice(tmp_pronomina_penanya).split()]
+                self.error_token_list = random.choice(tmp_pronomina_penanya).split(" ")
 
             self.original_token_list = [token]
 
@@ -681,45 +724,52 @@ class SpellingError(Error): #Membuat spelling error
 
     def generate_error(self):
         token = self.token
-        sentence = self.sentence
-        rand = random.randrange(1,4)
-        apakah_akan_dilakukan = random.randrange(1,20)
-
-        if apakah_akan_dilakukan == 1 and rand == 1 and token.form.isalpha() and len(token.form) > 3: ## Erase one char
         
-            self.original_token_list = [token]
-            index = random.randrange(0, len(token.form)-1)
-            self.error_token_list = [token.form[:index] + token.form[index + 1: ]]
+        if token.form.isalpha() and len(token.form) > 3:
+            rand = random.randrange(1, 5)
+            apakah_akan_dilakukan = random.randrange(1, 100)
 
-            self.error_type = "|||R:SPELL|||"
-            self.related_token_id = [token.id]
-      
-        elif apakah_akan_dilakukan == 1 and rand == 2 and token.form.isalpha() and len(token.form) > 3: ## Add one char
+            if apakah_akan_dilakukan == 1 and rand == 1: ## Erase one char
             
-            self.original_token_list = [token]
-            noise_char = random.choice(string.ascii_lowercase)
-            index = random.randrange(0, len(token.form)-1)
-            self.error_token_list = [token.form[:index] + noise_char + token.form[index + 1: ]]
+                self.original_token_list = [token]
+                index = random.randrange(0, len(token.form)-1)
+                self.error_token_list = [token.form[:index] + token.form[index + 1:]]
 
-            self.error_type = "|||R:SPELL|||"
-            self.related_token_id = [token.id]
+                self.error_type = "|||R:SPELL|||"
+                self.related_token_id = [token.id]
+        
+            elif apakah_akan_dilakukan == 1 and rand == 2: ## Add one char
+                
+                self.original_token_list = [token]
 
-        elif apakah_akan_dilakukan == 1 and rand == 3 and token.form.isalpha() and len(token.form) > 3: ## Tukar char sebelahnya
-            
-            self.original_token_list = [token]
-            index = random.randrange(1, len(token.form)-2)
-            self.error_token_list  = [token.form[:index] + token.form[index+1] + token.form[index]  + token.form[index + 2: ]]
-            
-            self.error_type = "|||R:SPELL|||"
-            self.related_token_id = [token.id]
+                # Get random noise character which is not the same as the original char
+                index = random.randrange(0, len(token.form)-1)
+                char_chosen = token.form[index]
+                noise_char = char_chosen   # Initially noise char == char chosen
+                while noise_char == char_chosen:
+                    noise_char = random.choice(string.ascii_lowercase)
 
-        elif apakah_akan_dilakukan == 1 and rand == 4 and token.form.isalpha() and len(token.form) > 3 and len(list(filter(lambda x: x in huruf_hidup, token.lemma))) > 0: ## Add one random char
-            
-            self.original_token_list = [token]
-            self.error_token_list = [re.sub("[aeiou]","",token.form)]
+                self.error_token_list = [token.form[:index] + noise_char + token.form[index + 1: ]]
 
-            self.error_type = "|||R:SPELL|||"
-            self.related_token_id = [token.id]
+                self.error_type = "|||R:SPELL|||"
+                self.related_token_id = [token.id]
+
+            elif apakah_akan_dilakukan == 1 and rand == 3: ## Tukar char sebelahnya
+                
+                self.original_token_list = [token]
+                index = random.randrange(1, len(token.form)-2)
+                self.error_token_list  = [token.form[:index] + token.form[index+1] + token.form[index]  + token.form[index + 2: ]]
+                
+                self.error_type = "|||R:SPELL|||"
+                self.related_token_id = [token.id]
+
+            elif apakah_akan_dilakukan == 1 and rand == 4 and len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) > 0:
+                
+                self.original_token_list = [token]
+                self.error_token_list = [(token.form[0] + re.sub("[aeiou]", "", token.form[1:])).replace("ng", "g")]
+
+                self.error_type = "|||R:SPELL|||"
+                self.related_token_id = [token.id]
 
 
 class VerbError(Error):
@@ -752,6 +802,8 @@ class VerbError(Error):
 
 
 class VerbInflectionError(Error):
+    
+    luluh_exception = ['mempunyai', 'mengkaji']
 
     error_type_id = "VERB:INFL"
     max_ratio = 0.1
@@ -760,10 +812,61 @@ class VerbInflectionError(Error):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+        token = self.token
+
+        token_form_lower = token.form.lower()
+        token_lemma = token.lemma
+
+        # init var
+        prefix = ""
+
+        if token.upos == 'VERB' and token.morf[0] != token_lemma:
+            if (
+                (token_form_lower[:2] == "me" and token_lemma[0] in self.konsonan_luluh and token_lemma[1] in self.huruf_hidup and token_form_lower not in self.luluh_exception)
+                or (token_form_lower[:2] == "me" and token_lemma in {'b','f'})
+                or (token_form_lower[:2] == "me" and len(list(filter(lambda x: x in self.huruf_hidup, token_lemma))) == 1)
+            ):
+                # If prefix has substring "me", and the above if conditions apply,
+                # then error can be generated by replacing prefix with "men"
+                prefix = "men"
+
+            elif token.morf[0] == "ber":
+                if token_form_lower[:3] == "ber":
+                    prefix = "be"
+                else:
+                    prefix = "ber"
+
+            elif token.morf[0] == "ter":
+                if token_form_lower[:3] == "ter":
+                    prefix = "te"
+                else:
+                    prefix = "ter"
+
+            if prefix:
+                try:
+                    lemma_and_suffix = "".join(token.morf[token.morf.find(token_lemma):])
+                except:
+                    lemma_and_suffix = "".join(token.morf[1:])
+
+                self.original_token_list = [token]
+                self.error_token_list = (prefix + lemma_and_suffix).split(" ")
+
+                self.error_type = "|||R:VERB:INFL|||"
+                self.related_token_id = [token.id]
 
 
 class VerbTenseError(Error):
+
+    konsonan_luluh_exception = ['dipunyai', 'dikaji'] #bahasa asing
+
+    mem_group = ['b','p','f']
+    meng_group = ['k', 'g']
+    menge_group = ['l']
+    menge_one_vowel_group = ['c']
+
+    deprel_nominals = ["nsubj", "obj", "iobj", "obl", "vocative", "expl", "dislocated", "obl", "vocative", "expl", "dislocated"]
+
+    no_passive_state = ["menjadi", "merupakan"]
 
     error_type_id = "VERB:TENSE"
     max_ratio = 0.1
@@ -772,7 +875,85 @@ class VerbTenseError(Error):
         super().__init__(token, sentence)
 
     def generate_error(self):
-        pass
+        token = self.token
+        sentence = self.sentence
+
+        token_lemma = token.lemma
+        
+        # init var
+        error_words = ""
+        
+        if token.upos == 'VERB' and token.feats and "Voice" in token.feats and token.form.lower() not in self.no_passive_state:
+
+            # Get Form without Prefix (if theres any)
+            try:
+                lemma_and_suffix_list = token.morf[token.morf.find(token_lemma):]
+            except:
+                if token.morf[0] != token_lemma:
+                    lemma_and_suffix_list = token.morf[1:]
+                else:
+                    lemma_and_suffix_list = token.morf
+
+            # Get next two tokens
+            token_id_after = token.id + 1
+            token_after = None
+            if sentence.does_token_id_exists(token_id_after):
+                token_after = sentence.get_token_by_id(token_id_after)
+
+            token_id_two_after = token.id + 2
+            token_two_after = None
+            if sentence.does_token_id_exists(token_id_two_after):
+                token_two_after = sentence.get_token_by_id(token_id_two_after)
+
+            # Act -> Pass
+            # If only next_token is a nominal OR next_two_token is a nominal and next_token supports next_two_token
+            if (
+                token.feats["Voice"] == "Act" 
+                and (
+                        (
+                            token_after is not None 
+                            and token_after.deprel in self.deprel_nominals
+                        ) 
+                    or  (
+                            token_after is not None 
+                            and token_two_after is not None 
+                            and token_two_after.deprel in self.deprel_nominals 
+                            and token_after.head == token_two_after.id
+                        )
+                    )
+            ):
+                error_words = "di" + "".join(lemma_and_suffix_list)
+            
+            # Pass -> Act
+            elif token.feats["Voice"] == "Pass":
+
+                lemma_and_suffix = "".join(lemma_and_suffix_list)
+                if token_lemma[0] in self.konsonan_luluh and token_lemma[1] in self.huruf_hidup:
+                    if lemma_and_suffix_list[0] != token.lemma and lemma_and_suffix_list[0][0] in self.konsonan_luluh:
+                        # If Consonant starts second lemma.
+                        token_lemma = lemma_and_suffix
+                    else:
+                        # If not, leburkan konsonan
+                        lemma_and_suffix = "".join(lemma_and_suffix_list)[1:]
+
+                if token_lemma[0] in self.mem_group:
+                    error_words = "mem" + lemma_and_suffix
+                elif token_lemma[0] in self.meng_group:
+                    error_words = "meng" + lemma_and_suffix
+                elif token_lemma[0] in self.menge_group:
+                    error_words = "menge" + lemma_and_suffix
+                elif token_lemma[0] in self.menge_one_vowel_group and len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) == 1:
+                    error_words = "menge" + lemma_and_suffix
+                else:
+                    error_words = "men" + lemma_and_suffix
+
+            if error_words:
+                self.original_token_list = [token]
+                self.error_token_list = error_words.split(" ")
+
+                self.error_type = "|||R:VERB:TENSE|||"
+                self.related_token_id = [token.id]
+
 
 
 class WordOrderError(Error):
@@ -794,7 +975,17 @@ class WordOrderError(Error):
 
         if token.upos == 'NOUN' and token_after and token_after.upos == 'PRON':
             self.original_token_list = [token, token_after]
-            self.error_token_list = [token_after.form, token.form]
+
+            if token.id == 0: # If token is first in sentence
+                if token_after.form == token_after.form.upper():
+                    # if token_after is all capitalized
+                    self.error_token_list = [token_after.form[0].upper() + token_after.form[1:], token.form]
+                else:
+                    # if token_after is not all capitalized
+                    self.error_token_list = [token_after.form[0].upper() + token_after.form[1:], token.form[0].lower() + token.form[1:]]
+
+            else:
+                self.error_token_list = [token_after.form, token.form]
 
             self.error_type = "|||R:WO|||"
             self.related_token_id = [token.id, token_after.id]

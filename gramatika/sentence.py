@@ -1,3 +1,4 @@
+import random
 
 
 class Sentence():
@@ -7,6 +8,7 @@ class Sentence():
         self.dataset = dataset
         self.token_list = []
         self.error_list = []
+        self.valid = False
 
         self.init_token_list()
 
@@ -68,13 +70,19 @@ class Sentence():
         return len(self.token_list)
     
     def is_valid(self):
-        if self.len() > 0:
-            return True
-        else:
-            return False
+        return self.valid and not self.has_utf8_encoding_error()
         
     def has_error(self):
         return len(self.error_list) > 0
+    
+    def has_utf8_encoding_error(self):
+        for token_idx in range(len(self.token_list)):
+            if token_idx != len(self.token_list)-1 and "?" in self.token_list[token_idx].form:
+                # If token is not the last token AND there is "?" in token form, then it is a utf-8 encoding error
+                return True
+            
+        return False
+
 
     def generate_error(self):
         for token in self.token_list:
@@ -91,12 +99,19 @@ class Sentence():
                 if error.is_valid():
                     self.error_list.append(error)
 
+        # filter error generated which has more than max_ratio allowed
+        self.filter_by_max_ratio()
+
+        # If before cleaning generated error there is errors,
+        # then set attribute valid to True
+        if self.has_error():
+            self.valid = True
+        
         self.clean_generated_error()
         self.update_error_count()
 
     
     def clean_generated_error(self):
-        self.filter_by_max_ratio()
         self.clean_collisions()
         self.clean_maximum_error_types_in_sentence()
         self.clean_maximum_error_in_sentence()
@@ -115,17 +130,20 @@ class Sentence():
             # Filter to only errors with related id
             error_related_to_id = [error for error in error_list_temp if id in error.related_token_id]
             
-            # Sort by ratio (ascending)
-            error_related_to_id.sort(key=lambda error : error.get_ratio())
-
             # If related error exists
             if len(error_related_to_id) > 0:
-                # append error with the least in ratio (most needed)
-                error_list_result_temp.append(error_related_to_id[0])
+                # Sort by ratio (ascending)
+                error_related_to_id.sort(key=lambda error : error.get_ratio())
 
-                # Remove all related error from main list (because it would collide with selected error above)
-                for error in error_related_to_id:
-                    error_list_temp.remove(error)
+                # append error with the least in ratio (most needed)
+                chosen_error = error_related_to_id[0]
+                error_list_result_temp.append(chosen_error)
+
+                # For every related token in chosen_error,
+                # Remove all error with the same related token from main list (because it would collide with selected error above)
+                for token_id in chosen_error.related_token_id:
+                    for error in [error for error in error_list_temp if token_id in error.related_token_id]:
+                        error_list_temp.remove(error)
         
         # Assign cleaned collisions list to error_list
         self.error_list = error_list_result_temp
@@ -151,9 +169,19 @@ class Sentence():
         # Sort by ratio (ascending)
         self.error_list.sort(key=lambda error : error.get_ratio())
 
-        # Only add errors according to args.max_error_in_sentence
+        # Will this sentence have error or not based on args.no_error_sentence_ratio
+        ratio_in_percentage = self.dataset.no_error_sentence_ratio * 100
+        if random.randrange(1, 100) < ratio_in_percentage:
+            # Will have no errors
+            max_error_this_sentence = 0
+        else:
+            # Get amount of errors picked in this sentence randomly,
+            # in the range of allowed args.max_error_in_sentence
+            max_error_this_sentence = random.randrange(1, self.dataset.max_error_in_sentence+1)
+
+        # Only add errors according to the random number above
         # starting with the least in ratio (most needed)
-        self.error_list = self.error_list[:self.dataset.max_error_in_sentence]
+        self.error_list = self.error_list[:max_error_this_sentence]
 
     def resort_for_output(self):
         self.error_list.sort(key=lambda error : [token.id for token in error.original_token_list])
