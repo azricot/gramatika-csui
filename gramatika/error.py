@@ -398,9 +398,6 @@ class NounInflectionError(Error):
                 ubah_kata = ubah_kata + "n"
             else :
                 ubah_kata = ubah_kata + "an"
-        #else:
-          #output = [0]
-          #return output
             
             self.original_token_list = [token]
             self.error_token_list = [ubah_kata]
@@ -697,7 +694,7 @@ class PunctuationError(Error):
         if sentence.does_token_id_exists(token_id_after):
             token_after = sentence.get_token_by_id(token_id_after)
 
-        if (token.upos == 'PUNCT'and token.lemma == "," and token_after != None  and token_after.upos=='CCONJ' and token_after.lemma in {"dan","atau","tetapi","melainkan","sedangkan"}):
+        if (token.upos == 'PUNCT' and token.lemma == "," and token_after != None  and token_after.upos=='CCONJ' and token_after.lemma in {"dan","atau","tetapi","melainkan","sedangkan"}):
             self.original_token_list = [token]
             self.error_token_list = [""]
 
@@ -709,6 +706,13 @@ class PunctuationError(Error):
             self.error_token_list = [""]
 
             self.error_type = "|||M:PUNCT|||"
+            self.related_token_id = [token.id]
+        
+        elif token.upos == 'PUNCT' and (token.lemma == "?" or token.lemma == "!"):
+            self.original_token_list = [token]
+            self.error_token_list = ["."]
+
+            self.error_type = "|||R:PUNCT|||"
             self.related_token_id = [token.id]
             
        
