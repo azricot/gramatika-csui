@@ -109,8 +109,6 @@ class AdverbError(Error):
             token_after = sentence.get_token_by_id(token_id_after)
 
         sinonims = sentence.dataset.get_sinonim(token.form)
-        if len(sinonims) == 0:
-            sinonims = sentence.dataset.get_sinonim(token.lemma) # if sinonym of token.form is not found, then search sinonym for its lemma
 
         if token.upos == 'ADV' and len(sinonims) > 0:
             self.original_token_list = [token]
@@ -133,17 +131,15 @@ class AdverbError(Error):
 
 class ConjunctionError(Error):
 
-    list_CCONJ = ['dan', 'atau', 'melainkan', 'sedangkan', 'serta', 'tetapi']
-
     list_conjunction_error_substitution = {
         # ---- CCONJ
-        "dan" : list_CCONJ,
-        "atau" : list_CCONJ,
-        "melainkan" : list_CCONJ,
-        "sedangkan" : list_CCONJ,
-        "serta" : list_CCONJ,
-        "tetapi" : list_CCONJ,
-        "padahal" : list_CCONJ,
+        "dan" : ['atau', 'melainkan', 'sedangkan', 'serta', 'tetapi'],
+        "atau" : ['dan', 'melainkan', 'sedangkan', 'serta', 'tetapi'],
+        "melainkan" : ['dan', 'atau', 'sedangkan', 'serta', 'tetapi'],
+        "sedangkan" : ['dan', 'atau', 'melainkan', 'serta', 'tetapi'],
+        "serta" : ['dan', 'atau', 'melainkan', 'sedangkan', 'tetapi'],
+        "tetapi" : ['dan', 'atau', 'melainkan', 'sedangkan', 'serta'],
+        "padahal" : ['dan', 'atau', 'melainkan', 'sedangkan', 'serta', 'tetapi'],
 
         # ---- SCONJ
 
@@ -241,6 +237,7 @@ class ConjunctionError(Error):
 
     def generate_error(self):
         token = self.token
+        sentence = self.sentence
 
         token_form_lower = token.form.lower()
 
@@ -250,6 +247,12 @@ class ConjunctionError(Error):
 
             self.error_type = "|||R:CONJ|||"
             self.related_token_id = [token.id]
+
+            # Token After (if there is any) will be added to related_token 
+            token_id_after = token.id + 1
+            if sentence.does_token_id_exists(token_id_after):
+                token_after = sentence.get_token_by_id(token_id_after)
+                self.related_token_id = [token.id, token_after.id]
 
 
 
@@ -346,10 +349,7 @@ class NounError(Error):
         if token.upos == 'NOUN':
 
             # Get synonym of token form
-            # if sinonym of token.form is not found, then search sinonym for its lemma
             sinonims = sentence.dataset.get_sinonim(token.form)
-            if len(sinonims) == 0:
-                sinonims = sentence.dataset.get_sinonim(token.lemma)
 
             # Only add error if there is sinonims
             if len(sinonims) > 0:
@@ -567,6 +567,7 @@ class PrepositionError(Error):
 
     def generate_error(self):
         token = self.token
+        sentence = self.sentence
 
         token_form_lower = token.form.lower()
 
@@ -580,6 +581,12 @@ class PrepositionError(Error):
 
             self.error_type = "|||R:PREP|||"
             self.related_token_id = [token.id]
+
+            # Token After (if there is any) will be added to related_token 
+            token_id_after = token.id + 1
+            if sentence.does_token_id_exists(token_id_after):
+                token_after = sentence.get_token_by_id(token_id_after)
+                self.related_token_id = [token.id, token_after.id]
 
 
 class PronounError(Error):
@@ -701,7 +708,7 @@ class PunctuationError(Error):
             self.error_type = "|||M:PUNCT|||"
             self.related_token_id = [token.id]
 
-        elif ((ada_Anak_Kalimat == 1 or ada_Kalimat_tambahan == 1) and token.lemma == ","  ): 
+        elif ((ada_Anak_Kalimat == 1 or ada_Kalimat_tambahan == 1) and token.lemma == ","): 
             self.original_token_list = [token]
             self.error_token_list = [""]
 
@@ -801,16 +808,13 @@ class VerbError(Error):
         if token.upos == 'VERB':
 
             # Get synonym of token form
-            # if sinonym of token.form is not found, then search sinonym for its lemma
             sinonims = sentence.dataset.get_sinonim(token.form)
-            if len(sinonims) == 0:
-                sinonims = sentence.dataset.get_sinonim(token.lemma)
 
             # Only add error if there is sinonims
             if len(sinonims) > 0:
                 self.original_token_list = [token]
                 self.error_token_list = random.choice(sinonims).split(" ")
-
+                
                 self.error_type = "|||R:VERB|||"
                 self.related_token_id = [token.id]
 
