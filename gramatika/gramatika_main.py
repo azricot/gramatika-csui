@@ -141,8 +141,11 @@ class GramatikaDataset():
 
             # Error Result Combination
             # Remember to remove all the empty strings
-            error_result_temp =" ".join([result for result in form_list_of_result_tokens if result != ""])
-            error_result_sentence += error_result_temp[0].upper() + error_result_temp[1:]
+            error_result_temp = " ".join([result for result in form_list_of_result_tokens if result != ""])
+            if len(error_result_temp) > 1:
+                error_result_sentence += error_result_temp[0].upper() + error_result_temp[1:]
+            else:
+                error_result_sentence += error_result_temp
 
             # Append error result + edit data to result list
             result.append(f"{error_result_sentence}{edit_data}")

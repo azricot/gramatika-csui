@@ -708,12 +708,22 @@ class PunctuationError(Error):
             self.error_type = "|||M:PUNCT|||"
             self.related_token_id = [token.id]
         
-        elif token.upos == 'PUNCT' and (token.lemma == "?" or token.lemma == "!"):
+        elif token.upos == 'PUNCT' and token.lemma in ["?", "!"]:
             self.original_token_list = [token]
             self.error_token_list = ["."]
 
             self.error_type = "|||R:PUNCT|||"
             self.related_token_id = [token.id]
+
+        elif token.upos == 'PUNCT' and token.lemma == ".":
+            # Do this 1 in 50 occurence of ".",
+            # So PUNCT error will not be saturated by this kind of error
+            if random.randrange(1, 50) == 1:
+                self.original_token_list = [token]
+                self.error_token_list = [""]
+
+                self.error_type = "|||M:PUNCT|||"
+                self.related_token_id = [token.id]
             
        
 
