@@ -86,7 +86,7 @@ class GramatikaDataset():
         return self.get_sinonim_dict().get_most_similar(word.lower())
 
     def generate_dataset(self):
-        with open(self.input_filename, "r", encoding="utf8", errors='ignore') as file_input:
+        with open(self.input_filename, "r", encoding="ascii", errors='ignore') as file_input:
             output_conll = parse(file_input.read())
 
         # Shuffle parsed output_conll randomly every time code runs
@@ -135,7 +135,7 @@ class GramatikaDataset():
                 edit_id_start = error.original_token_list[0].id + offset_for_edit_id
                 edit_id_end = edit_id_start + error.get_len_error_token_list()
                 edit_data += f"\nA {edit_id_start} {edit_id_end}{error.error_type}{error.get_original_form()}|||REQUIRED|||-NONE-|||0"
-                
+
                 # Add offset = length of error - length of original
                 offset_for_edit_id += error.get_edit_offset()
 
@@ -150,22 +150,26 @@ class GramatikaDataset():
             # Append error result + edit data to result list
             result.append(f"{error_result_sentence}{edit_data}")
 
-        with open(self.output_filename, "w", encoding="utf8") as file_output:
+        with open(self.output_filename, "w", encoding="ascii") as file_output:
             file_output.write("\n\n".join(result))
 
         # Write stats of dataset
         output_file_name = self.output_filename[:self.output_filename.rfind(".")]
         stats_filename = f"{output_file_name}_statistics.txt"
 
-        with open(stats_filename, "w", encoding="utf8") as stat_file_output:
+        with open(stats_filename, "w", encoding="ascii") as stat_file_output:
             # Total Data
             total_data = len(self.sentence_list)
             total_with_error = len([sentence for sentence in self.sentence_list if sentence.has_error()])
             total_without_error = len([sentence for sentence in self.sentence_list if not sentence.has_error()])
             
             stat_file_output.write(f"Total Kalimat: {total_data}\n")
-            stat_file_output.write(f"Total Kalimat dengan Error: {total_with_error} ({total_with_error / total_data * 100:.2f}%)\n")
-            stat_file_output.write(f"Total Kalimat tanpa Error: {total_without_error} ({total_without_error / total_data * 100:.2f}%)\n\n")
+            if total_data > 0:
+                stat_file_output.write(f"Total Kalimat dengan Error: {total_with_error} ({total_with_error / total_data * 100:.2f}%)\n")
+                stat_file_output.write(f"Total Kalimat tanpa Error: {total_without_error} ({total_without_error / total_data * 100:.2f}%)\n\n")
+            else:
+                stat_file_output.write(f"Total Kalimat dengan Error: {total_with_error} ({0:.2f}%)\n")
+                stat_file_output.write(f"Total Kalimat tanpa Error: {total_without_error} ({0:.2f}%)\n\n")
             
             total_all_error = self.get_total_error()
 
@@ -176,6 +180,9 @@ class GramatikaDataset():
             # Number of and percentage of each error type
             for error_type_id in self.error_dict.keys():
                 total_each_error_type = self.error_dict[error_type_id]["count"]
-                ratio_each_error_type = total_each_error_type / total_all_error * 100
+                if total_all_error > 0:
+                    ratio_each_error_type = total_each_error_type / total_all_error * 100
+                else:
+                    ratio_each_error_type = 0
 
                 stat_file_output.write(f"- {error_type_id}: {total_each_error_type} ({ratio_each_error_type:.2f}%)\n")

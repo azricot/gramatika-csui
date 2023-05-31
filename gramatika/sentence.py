@@ -25,6 +25,10 @@ class Sentence():
                 continue
 
             token = self.sentence_conll[token_id]
+            
+            # Skip if form is an empty string
+            if len(token["form"]) == 0:
+                continue
 
             if isinstance(token["id"], tuple):
                 # If token type tuple, combine all child token to one Token instance
@@ -101,6 +105,7 @@ class Sentence():
 
         # filter error generated which has more than max_ratio allowed
         self.filter_by_max_ratio()
+        self.remove_error_which_is_equal_to_token()
 
         # If before cleaning generated error there is errors,
         # then set attribute valid to True
@@ -119,6 +124,9 @@ class Sentence():
 
     def filter_by_max_ratio(self):
         self.error_list = [error for error in self.error_list if error.is_below_max_ratio()]
+
+    def remove_error_which_is_equal_to_token(self):
+        self.error_list = [error for error in self.error_list if error.get_original_form() != error.get_error_form()]
 
     def clean_collisions(self):
         error_list_temp = self.error_list
