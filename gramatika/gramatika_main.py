@@ -21,6 +21,7 @@ from .error import (
 )
 
 from conllu import parse
+import copy
 
 from tqdm import tqdm
 import random
@@ -106,14 +107,27 @@ class GramatikaDataset():
 
         self.output_dataset()
 
+
     def output_dataset(self):
+        
+        output_file_name = self.output_filename[:self.output_filename.rfind(".")]
+        stats_filename = f"{output_file_name}_statistics.txt"
+        txt_original_filename =  f"{output_file_name}_parallel_original.txt"
+        txt_error_filename =  f"{output_file_name}_parallel_error.txt"
+
+        txt_original = []
+        txt_error = []
+
         result = []
         for sentence in self.sentence_list:
             form_list_of_result_tokens = [e.form for e in sentence.token_list]
 
+            txt_original.append(" ".join([form for form in form_list_of_result_tokens if form != ""]))
+            
             error_result_sentence = "S "
             edit_data = ""
             offset_for_edit_id = 0
+            false_sentence = []
 
             for error in sentence.error_list:
                 # Acquire Error Result Sentence
@@ -150,13 +164,25 @@ class GramatikaDataset():
             # Append error result + edit data to result list
             result.append(f"{error_result_sentence}{edit_data}")
 
+
+            # For the parallel data
+            txt_error.append(error_result_sentence[len("S "):])
+
+
+        # Write Dataset in M2 Format
         with open(self.output_filename, "w", encoding="ascii") as file_output:
             file_output.write("\n\n".join(result))
+        
+
+        # Write dataset in parallel sentence format
+        with open(txt_original_filename, "w", encoding="ascii") as file_output:
+            file_output.write("\n".join(txt_original))
+
+        with open(txt_error_filename, "w", encoding="ascii") as file_output:
+            file_output.write("\n".join(txt_error))
+            
 
         # Write stats of dataset
-        output_file_name = self.output_filename[:self.output_filename.rfind(".")]
-        stats_filename = f"{output_file_name}_statistics.txt"
-
         with open(stats_filename, "w", encoding="ascii") as stat_file_output:
             # Total Data
             total_data = len(self.sentence_list)
@@ -186,3 +212,4 @@ class GramatikaDataset():
                     ratio_each_error_type = 0
 
                 stat_file_output.write(f"- {error_type_id}: {total_each_error_type} ({ratio_each_error_type:.2f}%)\n")
+            
