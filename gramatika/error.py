@@ -840,7 +840,7 @@ class VerbInflectionError(Error):
             if (
                 (token_form_lower[:2] == "me" and token_lemma[0] in self.konsonan_luluh and token_lemma[1] in self.huruf_hidup and token_form_lower not in self.luluh_exception)
                 or (token_form_lower[:2] == "me" and token_lemma[0] in {'b','f'})
-                or (token_form_lower[:2] == "me" and (token_lemma[0] in {'g'} or token_lemma[0] in self.huruf_hidup))
+                or (token_form_lower[:2] == "me" and (token_lemma[0] in {'g','h','x'} or token_lemma[0] in self.huruf_hidup))
                 or (token_form_lower[:2] == "me" and token_lemma[0] in {'l','m','n','r','y','w'} )
                 or (token_form_lower[:2] == "me" and len(list(filter(lambda x: x in self.huruf_hidup, token_lemma))) == 1)
             ):
@@ -880,12 +880,10 @@ class VerbTenseError(Error):
 
     konsonan_luluh_exception = ['dipunyai', 'dikaji'] #bahasa asing
 
-    me_group = ['l', 'm', 'n', 'r', 'w']
+    me_group = ['l', 'm', 'n', 'r', 'w', 'y']
     mem_group = ['b', 'p', 'f']
-    meng_group = ['k', 'g', 'h', 'o']
+    meng_group = ['k', 'g', 'h', 'x', 'a', 'i', 'u', 'e', 'o']
     meny_group = ['s']
-    menge_group = ['l']
-    menge_one_vowel_group = ['c']
     # The rest is men_group ex. t
 
     deprel_nominals = ["nsubj", "obj", "iobj", "obl", "vocative", "expl", "dislocated", "obl", "vocative", "expl", "dislocated"]
@@ -968,9 +966,7 @@ class VerbTenseError(Error):
                     error_words = "meng" + lemma_and_suffix
                 elif token_lemma[0] in self.meny_group:
                     error_words = "meny" + lemma_and_suffix
-                elif token_lemma[0] in self.menge_group:
-                    error_words = "menge" + lemma_and_suffix
-                elif token_lemma[0] in self.menge_one_vowel_group and len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) == 1:
+                elif len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) == 1:
                     error_words = "menge" + lemma_and_suffix
                 else:
                     error_words = "men" + lemma_and_suffix
