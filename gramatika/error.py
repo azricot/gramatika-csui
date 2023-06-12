@@ -821,7 +821,6 @@ class VerbInflectionError(Error):
     
     luluh_exception = ['mempunyai', 'mengkaji']
     bahasa_asing = ['memproduksi','memproses','memroses','mensukseskan','menyukseskan']
-    prefix_meng_inflection = ["meng","men","menge","meny","me","mem"]
     
     error_type_id = "VERB:INFL"
     max_ratio = 0.1
@@ -848,8 +847,17 @@ class VerbInflectionError(Error):
                 prefix = "men"
             
             elif ( token_form_lower[:2] == "me" and token_form_lower not in self.bahasa_asing):
-                prefix_meng_inflection_tmp = self.prefix_meng_inflection.pop(token.morf[0])  
-                prefix = random.choice(prefix_meng_inflection_tmp)
+                if token_form_lower[:4] == "meng":
+                    prefix = random.choice(["men","menge","meny","me","mem"])
+                elif token_form_lower[:3] == "men":
+                    prefix = random.choice(["meng","menge","meny","me","mem"])
+                elif token_form_lower[:3] == "meny":
+                    prefix = random.choice(["meng","men","menge","me","mem"])
+                elif token_form_lower[:3] == "mem":
+                    prefix = random.choice(["meng","men","menye","menge","me"])
+                elif token_form_lower[:2] == "me":
+                    prefix = random.choice(["meng","men","menye","menge","mem"])
+                
 
             elif token.morf[0] == "ber":
                 if token_form_lower[:3] == "ber":
