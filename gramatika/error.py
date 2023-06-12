@@ -109,8 +109,6 @@ class AdverbError(Error):
             token_after = sentence.get_token_by_id(token_id_after)
 
         sinonims = sentence.dataset.get_sinonim(token.form)
-        if len(sinonims) == 0:
-            sinonims = sentence.dataset.get_sinonim(token.lemma) # if sinonym of token.form is not found, then search sinonym for its lemma
 
         if token.upos == 'ADV' and len(sinonims) > 0:
             self.original_token_list = [token]
@@ -133,17 +131,15 @@ class AdverbError(Error):
 
 class ConjunctionError(Error):
 
-    list_CCONJ = ['dan', 'atau', 'melainkan', 'sedangkan', 'serta', 'tetapi']
-
     list_conjunction_error_substitution = {
         # ---- CCONJ
-        "dan" : list_CCONJ,
-        "atau" : list_CCONJ,
-        "melainkan" : list_CCONJ,
-        "sedangkan" : list_CCONJ,
-        "serta" : list_CCONJ,
-        "tetapi" : list_CCONJ,
-        "padahal" : list_CCONJ,
+        "dan" : ['atau', 'tetapi'],
+        "atau" : ['dan', 'serta', 'tetapi'],
+        "melainkan" : ['dan', 'atau', 'sedangkan', 'serta', 'tetapi'],
+        "sedangkan" : ['dan', 'atau', 'melainkan', 'serta', 'tetapi'],
+        "serta" : ['atau', 'melainkan', 'sedangkan', 'tetapi'],
+        "tetapi" : ['dan', 'atau', 'melainkan', 'sedangkan', 'serta'],
+        "padahal" : ['dan', 'atau', 'melainkan', 'sedangkan', 'serta', 'tetapi'],
 
         # ---- SCONJ
 
@@ -241,6 +237,7 @@ class ConjunctionError(Error):
 
     def generate_error(self):
         token = self.token
+        sentence = self.sentence
 
         token_form_lower = token.form.lower()
 
@@ -251,6 +248,12 @@ class ConjunctionError(Error):
             self.error_type = "|||R:CONJ|||"
             self.related_token_id = [token.id]
 
+            # Token After (if there is any) will be added to related_token 
+            token_id_after = token.id + 1
+            if sentence.does_token_id_exists(token_id_after):
+                token_after = sentence.get_token_by_id(token_id_after)
+                self.related_token_id = [token.id, token_after.id]
+
 
 
 class DeterminerError(Error):
@@ -259,6 +262,7 @@ class DeterminerError(Error):
     max_ratio = 0.1
 
     penggolong_word_list = ['orang', 'ekor', 'buah', 'batang' , 'bentuk', 'bidang' , 'belah', 'helai', 'bilah', 'utas', 'potong', 'tangkai', 'butir', 'pucuk', 'carik', 'rumpun', 'keping', 'biji', 'kuntum', 'patah', 'laras', 'kerat']
+    penggolong_subtitution_choices = ['orang', 'ekor', 'buah', 'batang' , 'bentuk', 'bidang' , 'belah', 'helai', 'bilah', 'utas', 'potong', 'tangkai', 'butir', 'pucuk', 'carik', 'rumpun', 'keping', 'biji', 'kuntum', 'patah']
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -269,7 +273,7 @@ class DeterminerError(Error):
 
         if token.upos == 'DET' and token.lemma in self.penggolong_word_list:
             self.original_token_list = [token]
-            self.error_token_list = token.form.replace(token.lemma, random.choice([penggolong for penggolong in self.penggolong_word_list if penggolong != token.lemma])).split(" ")
+            self.error_token_list = token.form.replace(token.lemma, random.choice([penggolong for penggolong in self.penggolong_subtitution_choices if penggolong != token.lemma])).split(" ")
 
             self.error_type = "|||R:DET|||"
             self.related_token_id = [token.id]
@@ -346,10 +350,7 @@ class NounError(Error):
         if token.upos == 'NOUN':
 
             # Get synonym of token form
-            # if sinonym of token.form is not found, then search sinonym for its lemma
             sinonims = sentence.dataset.get_sinonim(token.form)
-            if len(sinonims) == 0:
-                sinonims = sentence.dataset.get_sinonim(token.lemma)
 
             # Only add error if there is sinonims
             if len(sinonims) > 0:
@@ -372,38 +373,35 @@ class NounInflectionError(Error):
     
         token = self.token
         
-        if (token.upos=='NOUN' and (token.morf.count('peN') == 1 or token.morf.count('pe') == 1 or token.morf.count('per') == 1) and token.morf.count('an') == 0):
+        if (token.upos=='NOUN' and (token.morf.count('peN') == 1 or token.morf.count('pe') == 1 or token.morf.count('per') == 1)):
             
-            self.original_token_list = [token]
-            self.error_token_list = [""]
-        
+            prefix = ""
+
             if token.form[:3].lower() == "per":
-                self.error_token_list = ("pe" + token.lemma).split(" ")
-            else :
-                self.error_token_list = ("per" + token.lemma).split(" ")
-
-            self.error_type = "|||R:NOUN:INFL|||"
-            self.related_token_id = [token.id]
-        
-        elif (token.upos=='NOUN' and (token.morf.count('peN') == 1 or token.morf.count('pe') == 1 or token.morf.count('per') == 1) and token.morf.count('an') == 1):
-
-            ubah_kata = ""
-        
-            if token.form[:3].lower() == "pem" or token.form[:3].lower() == "pen" or token.form[:3].lower() == "peng" or token.form[:3].lower() == "per":
-                ubah_kata = "pe" + token.lemma 
+                prefix = random.choice(["pen", "pe"])
+            elif token.form[:3].lower() == "pen":
+                prefix = random.choice(["per", "pe"])
+            elif token.form[:3].lower() == "peng":
+                prefix = random.choice(["per", "pen", "pe"])
+            elif token.form[:3].lower() == "pem":
+                prefix = "pe"
             elif token.form[:3].lower() == "peny":
-                ubah_kata = "pen" + token.lemma
+                prefix = "pen"
             
-            if token.lemma[-1] == "a":
-                ubah_kata = ubah_kata + "n"
-            else :
-                ubah_kata = ubah_kata + "an"
-            
-            self.original_token_list = [token]
-            self.error_token_list = [ubah_kata]
+            ubah_kata = prefix + token.lemma
 
-            self.error_type = "|||R:NOUN:INFL|||"
-            self.related_token_id = [token.id]
+            if prefix:
+                if token.morf.count('an') == 1:
+                    if token.lemma[-1] == "a":
+                        ubah_kata = ubah_kata + "n"
+                    else :
+                        ubah_kata = ubah_kata + "an"
+            
+                self.original_token_list = [token]
+                self.error_token_list = ubah_kata.split(" ")
+
+                self.error_type = "|||R:NOUN:INFL|||"
+                self.related_token_id = [token.id]
 
 
 
@@ -567,6 +565,7 @@ class PrepositionError(Error):
 
     def generate_error(self):
         token = self.token
+        sentence = self.sentence
 
         token_form_lower = token.form.lower()
 
@@ -580,6 +579,12 @@ class PrepositionError(Error):
 
             self.error_type = "|||R:PREP|||"
             self.related_token_id = [token.id]
+
+            # Token After (if there is any) will be added to related_token 
+            token_id_after = token.id + 1
+            if sentence.does_token_id_exists(token_id_after):
+                token_after = sentence.get_token_by_id(token_id_after)
+                self.related_token_id = [token.id, token_after.id]
 
 
 class PronounError(Error):
@@ -701,19 +706,29 @@ class PunctuationError(Error):
             self.error_type = "|||M:PUNCT|||"
             self.related_token_id = [token.id]
 
-        elif ((ada_Anak_Kalimat == 1 or ada_Kalimat_tambahan == 1) and token.lemma == ","  ): 
+        elif ((ada_Anak_Kalimat == 1 or ada_Kalimat_tambahan == 1) and token.lemma == ","): 
             self.original_token_list = [token]
             self.error_token_list = [""]
 
             self.error_type = "|||M:PUNCT|||"
             self.related_token_id = [token.id]
         
-        elif token.upos == 'PUNCT' and (token.lemma == "?" or token.lemma == "!"):
+        elif token.upos == 'PUNCT' and token.lemma in ["?", "!"]:
             self.original_token_list = [token]
             self.error_token_list = ["."]
 
             self.error_type = "|||R:PUNCT|||"
             self.related_token_id = [token.id]
+
+        elif token.upos == 'PUNCT' and token.lemma == ".":
+            # Do this 1 in 50 occurence of ".",
+            # So PUNCT error will not be saturated by this kind of error
+            if random.randrange(1, 50) == 1:
+                self.original_token_list = [token]
+                self.error_token_list = [""]
+
+                self.error_type = "|||M:PUNCT|||"
+                self.related_token_id = [token.id]
             
        
 
@@ -791,16 +806,13 @@ class VerbError(Error):
         if token.upos == 'VERB':
 
             # Get synonym of token form
-            # if sinonym of token.form is not found, then search sinonym for its lemma
             sinonims = sentence.dataset.get_sinonim(token.form)
-            if len(sinonims) == 0:
-                sinonims = sentence.dataset.get_sinonim(token.lemma)
 
             # Only add error if there is sinonims
             if len(sinonims) > 0:
                 self.original_token_list = [token]
                 self.error_token_list = random.choice(sinonims).split(" ")
-
+                
                 self.error_type = "|||R:VERB|||"
                 self.related_token_id = [token.id]
 
@@ -867,10 +879,13 @@ class VerbTenseError(Error):
 
     konsonan_luluh_exception = ['dipunyai', 'dikaji'] #bahasa asing
 
-    mem_group = ['b','p','f']
-    meng_group = ['k', 'g']
+    me_group = ['l', 'm', 'n', 'r', 'w']
+    mem_group = ['b', 'p', 'f']
+    meng_group = ['k', 'g', 'h', 'o']
+    meny_group = ['s']
     menge_group = ['l']
     menge_one_vowel_group = ['c']
+    # The rest is men_group ex. t
 
     deprel_nominals = ["nsubj", "obj", "iobj", "obl", "vocative", "expl", "dislocated", "obl", "vocative", "expl", "dislocated"]
 
@@ -944,10 +959,14 @@ class VerbTenseError(Error):
                         # If not, leburkan konsonan
                         lemma_and_suffix = "".join(lemma_and_suffix_list)[1:]
 
-                if token_lemma[0] in self.mem_group:
+                if token_lemma[0] in self.me_group:
+                    error_words = "me" + lemma_and_suffix
+                elif token_lemma[0] in self.mem_group:
                     error_words = "mem" + lemma_and_suffix
                 elif token_lemma[0] in self.meng_group:
                     error_words = "meng" + lemma_and_suffix
+                elif token_lemma[0] in self.meny_group:
+                    error_words = "meny" + lemma_and_suffix
                 elif token_lemma[0] in self.menge_group:
                     error_words = "menge" + lemma_and_suffix
                 elif token_lemma[0] in self.menge_one_vowel_group and len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) == 1:
@@ -981,7 +1000,7 @@ class WordOrderError(Error):
         if sentence.does_token_id_exists(token_id_after):
             token_after = sentence.get_token_by_id(token_id_after)
 
-        if token.upos == 'NOUN' and token_after and token_after.upos == 'PRON':
+        if token.upos == 'NOUN' and token_after and token_after.upos in ['PRON', 'ADJ']:
             self.original_token_list = [token, token_after]
 
             if token.id == 0: # If token is first in sentence
