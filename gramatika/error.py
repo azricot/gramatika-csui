@@ -381,11 +381,11 @@ class NounInflectionError(Error):
                 prefix = random.choice(["pen", "pe"])
             elif token.form[:3].lower() == "pen":
                 prefix = random.choice(["per", "pe"])
-            elif token.form[:3].lower() == "peng":
+            elif token.form[:4].lower() == "peng":
                 prefix = random.choice(["per", "pen", "pe"])
             elif token.form[:3].lower() == "pem":
                 prefix = "pe"
-            elif token.form[:3].lower() == "peny":
+            elif token.form[:4].lower() == "peny":
                 prefix = "pen"
             
             ubah_kata = prefix + token.lemma
