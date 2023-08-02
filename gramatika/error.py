@@ -309,10 +309,10 @@ class MorphologyError(Error):
         if (
             (
                 token.upos == 'VERB' 
-                and token_morf_plus_sign.count('ber+') == 1 
+                and token_morf_plus_sign.count('meN+') == 1 
                 and token_morf_plus_sign.count('+') == 1
             )
-            and not
+            and
             (
                 token_after is not None and token_after.deprel in self.deprel_nominals
             )
@@ -324,12 +324,18 @@ class MorphologyError(Error):
             self.related_token_id = [token.id]
 
         elif (
-            token.upos == 'NOUN' 
-            and token_morf_plus_sign.count('per+') == 1
-            and token_morf_plus_sign.count('+an') == 1
+            (
+                token.upos == 'VERB' 
+                and token_morf_plus_sign.count('ber+') == 1 
+                and token_morf_plus_sign.count('+') == 1
+            )
+            and not
+            (
+                token_after is not None and token_after.deprel in self.deprel_nominals
+            )
         ):
             self.original_token_list = [token]
-            self.error_token_list = sentence.dataset.get_most_similar("ber" + token.lemma).split(" ")
+            self.error_token_list = ("per" + token.lemma + "an").split(" ")
             
             self.error_type = "|||R:MORPH|||"
             self.related_token_id = [token.id]
