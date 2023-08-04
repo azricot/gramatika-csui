@@ -30,6 +30,40 @@ class Sentence():
             if len(token["form"]) == 0:
                 continue
 
+            # Handle ()
+            if token["form"] == "(":
+                has_special_symbols = False
+                nested = 0
+                len_sentence = len(self.sentence_conll)
+                offset = 1
+                token_after = self.sentence_conll[token_id+offset]
+
+                while (token_after["form"] != ")" or nested > 0) and token_id+offset < len_sentence:
+                    if token_after["form"] == "(":
+                        nested += 1
+
+                    if token_after["form"] == ")" and nested > 0:
+                        nested -= 1
+
+                    if token_after["form"] in [";", ","]:
+                        has_special_symbols = True
+
+                    offset += 1
+                    if token_id+offset < len_sentence:
+                        token_after = self.sentence_conll[token_id+offset]
+
+                # Skip the () if condition fulfilled
+                if offset == 1 and token_after["form"] == ")":
+                    skip_it = 1
+                    continue
+                elif token_id+offset >= len_sentence:
+                    skip_it = offset - 1
+                    continue
+                elif has_special_symbols:
+                    skip_it = offset
+                    continue
+
+
             if isinstance(token["id"], tuple):
                 # If token type tuple, combine all child token to one Token instance
                 start_id = token["id"][0]
@@ -74,16 +108,26 @@ class Sentence():
         return len(self.token_list)
     
     def is_valid(self):
-        return self.valid and not self.has_utf8_encoding_error()
+        return self.valid and not self.has_utf8_encoding_error_or_contain_forbidden_token()
         
     def has_error(self):
         return len(self.error_list) > 0
     
-    def has_utf8_encoding_error(self):
+    def has_utf8_encoding_error_or_contain_forbidden_token(self):
         for token_idx in range(len(self.token_list)):
             if token_idx != len(self.token_list)-1 and "?" in self.token_list[token_idx].form:
                 # If token is not the last token AND there is "?" in token form, then it is a utf-8 encoding error
                 return True
+            elif self.token_list[token_idx].form in ["gt", "lt"]:
+                return True
+
+        # If first character is lowercase, sentence is invalid
+        if self.token_list[0].form[0].islower():
+            return True
+
+        # If last token is not punct, sentence is invalid
+        if self.token_list[len(self.token_list)].upos != 'PUNCT':
+            return True
             
         return False
 

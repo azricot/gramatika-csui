@@ -752,7 +752,7 @@ class SpellingError(Error): #Membuat spelling error
         
         if token.form.isalpha() and len(token.form) > 3:
             rand = random.randrange(1, 5)
-            apakah_akan_dilakukan = random.randrange(1, 100)
+            apakah_akan_dilakukan = random.randrange(1, 50)
 
             if apakah_akan_dilakukan == 1 and rand == 1: ## Erase one char
             
@@ -788,7 +788,7 @@ class SpellingError(Error): #Membuat spelling error
                 self.error_type = "|||R:SPELL|||"
                 self.related_token_id = [token.id]
 
-            elif apakah_akan_dilakukan == 1 and rand == 4 and len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) > 0:
+            elif apakah_akan_dilakukan == 1 and rand == 4 and len(list(filter(lambda x: x in self.huruf_hidup, token.lemma))) > 0 and len(token.form) < 7:
                 
                 self.original_token_list = [token]
                 self.error_token_list = [(token.form[0] + re.sub("[aeiou]", "", token.form[1:])).replace("ng", "g")]

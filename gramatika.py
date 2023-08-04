@@ -37,11 +37,11 @@ def get_args():
                         type=int,
                         help="The maximum number of error in each sentence")
     parser.add_argument("--max_same_error_in_sentence",
-                        default=1,
+                        default=2,
                         type=int,
                         help="The maximum number of the same type of error in each sentence")
     parser.add_argument("--no_error_sentence_ratio",
-                        default=0.05,
+                        default=0,
                         type=float,
                         help="The estimated ratio of data/sentence which will have no error")
     # parser.add_argument("--",
