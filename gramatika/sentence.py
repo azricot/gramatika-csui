@@ -126,7 +126,7 @@ class Sentence():
             return True
 
         # If last token is not punct, sentence is invalid
-        if self.token_list[len(self.token_list)].upos != 'PUNCT':
+        if self.token_list[len(self.token_list)-1].upos != 'PUNCT':
             return True
             
         return False
