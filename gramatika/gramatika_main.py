@@ -104,6 +104,9 @@ class GramatikaDataset():
             if sentence.is_valid():
                 # Only save sentence object if it is valid to be saved
                 self.sentence_list.append(sentence)
+                
+                for error in sentence.error_list:
+                    self.error_dict[error.error_type_id]["count"] += 1
 
         self.output_dataset()
 

@@ -122,7 +122,7 @@ class Sentence():
                 return True
 
         # If first character is lowercase, sentence is invalid
-        if self.token_list[0].form[0].islower():
+        if self.token_list[0].form[0].islower() or self.token_list[0].form[0] in ["(", ")", "[", "]", "{", "}", "-"]:
             return True
 
         # If last token is not punct, sentence is invalid
@@ -157,7 +157,6 @@ class Sentence():
             self.valid = True
         
         self.clean_generated_error()
-        self.update_error_count()
 
     
     def clean_generated_error(self):
@@ -237,10 +236,6 @@ class Sentence():
 
     def resort_for_output(self):
         self.error_list.sort(key=lambda error : [token.id for token in error.original_token_list])
-
-    def update_error_count(self):
-        for error in self.error_list:
-            self.dataset.error_dict[error.error_type_id]["count"] += 1
 
 
 

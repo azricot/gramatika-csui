@@ -1011,7 +1011,7 @@ class WordOrderError(Error):
         if sentence.does_token_id_exists(token_id_after):
             token_after = sentence.get_token_by_id(token_id_after)
 
-        if token.upos == 'NOUN' and token_after and token_after.upos in ['PRON', 'ADJ']:
+        if token_after and ((token.upos == 'NOUN' and token_after.upos in ['PRON', 'ADJ']) or (token.upos == 'ADV' and token_after.upos in ['VERB', 'ADJ']) or (token.upos == ['VERB', 'ADJ'] and token_after.upos in 'ADV')):
             self.original_token_list = [token, token_after]
 
             if token.id == 0: # If token is first in sentence
