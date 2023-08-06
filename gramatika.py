@@ -44,6 +44,10 @@ def get_args():
                         default=0,
                         type=float,
                         help="The estimated ratio of data/sentence which will have no error")
+    parser.add_argument("--total_sentence",
+                        default=0,
+                        type=int,
+                        help="Total produced sentences")
     # parser.add_argument("--",
     #                     default=128,
     #                     type=int,

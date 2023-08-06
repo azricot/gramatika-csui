@@ -729,7 +729,7 @@ class PunctuationError(Error):
         elif token.upos == 'PUNCT' and token.lemma == ".":
             # Do this 1 in 50 occurence of ".",
             # So PUNCT error will not be saturated by this kind of error
-            if random.randrange(1, 50) == 1:
+            if random.randrange(1, 40) == 1:
                 self.original_token_list = [token]
                 self.error_token_list = [""]
 
@@ -752,7 +752,7 @@ class SpellingError(Error): #Membuat spelling error
         
         if token.form.isalpha() and len(token.form) > 3:
             rand = random.randrange(1, 5)
-            apakah_akan_dilakukan = random.randrange(1, 50)
+            apakah_akan_dilakukan = random.randrange(1, 40)
 
             if apakah_akan_dilakukan == 1 and rand == 1: ## Erase one char
             

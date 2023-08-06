@@ -38,6 +38,8 @@ class GramatikaDataset():
         self.max_error_in_sentence = args.max_error_in_sentence
         self.max_same_error_in_sentence = args.max_same_error_in_sentence
         self.no_error_sentence_ratio = args.no_error_sentence_ratio
+        self.total_sentence = args.total_sentence
+        self.total_sentence_real = 0
 
         # Initiate all error types
         list_of_all_error_classes = [
@@ -96,6 +98,9 @@ class GramatikaDataset():
 
         # Create Sentence objects
         for sentence_conll in tqdm(output_conll):
+            if self.total_sentence_real == self.total_sentence:
+                continue
+
             sentence = Sentence(
                 sentence_conll=sentence_conll,
                 dataset=self
@@ -107,6 +112,8 @@ class GramatikaDataset():
                 
                 for error in sentence.error_list:
                     self.error_dict[error.error_type_id]["count"] += 1
+
+                self.total_sentence_real += 1
 
         self.output_dataset()
 
