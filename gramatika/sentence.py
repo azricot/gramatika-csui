@@ -9,6 +9,7 @@ class Sentence():
         self.token_list = []
         self.error_list = []
         self.valid = False
+        self.will_have_error = False
 
         self.init_token_list()
 
@@ -221,14 +222,15 @@ class Sentence():
         self.error_list.sort(key=lambda error : error.get_ratio())
 
         # Will this sentence have error or not based on args.no_error_sentence_ratio
-        ratio_in_percentage = self.dataset.no_error_sentence_ratio * 100
-        if random.randrange(1, 100) < ratio_in_percentage:
+        if self.dataset.total_sentence_real > 25 and self.dataset.total_sentence_without_error/self.dataset.total_sentence_real < self.dataset.no_error_sentence_ratio:
             # Will have no errors
             max_error_this_sentence = 0
+            self.will_have_error = False
         else:
             # Get amount of errors picked in this sentence randomly,
             # in the range of allowed args.max_error_in_sentence
             max_error_this_sentence = random.randrange(1, self.dataset.max_error_in_sentence+1)
+            self.will_have_error = True
 
         # Only add errors according to the random number above
         # starting with the least in ratio (most needed)

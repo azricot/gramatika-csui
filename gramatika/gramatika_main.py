@@ -41,6 +41,9 @@ class GramatikaDataset():
         self.total_sentence = args.total_sentence
         self.total_sentence_real = 0
 
+        self.total_sentence_with_error = 0
+        self.total_sentence_without_error = 0
+
         # Initiate all error types
         list_of_all_error_classes = [
             AdjectiveError,
@@ -114,6 +117,11 @@ class GramatikaDataset():
                     self.error_dict[error.error_type_id]["count"] += 1
 
                 self.total_sentence_real += 1
+
+                if sentence.will_have_error:
+                    self.total_sentence_with_error += 1
+                else:
+                    self.total_sentence_without_error += 1
 
         self.output_dataset()
 
