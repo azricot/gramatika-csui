@@ -70,7 +70,7 @@ class Error(ABC):
 class AdjectiveError(Error):
 
     error_type_id = "ADJ"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -92,7 +92,7 @@ class AdjectiveError(Error):
 class AdverbError(Error):
 
     error_type_id = "ADV"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     adp_for_Adverb = ['secara', 'dengan']
 
@@ -133,8 +133,8 @@ class ConjunctionError(Error):
 
     list_conjunction_error_substitution = {
         # ---- CCONJ
-        "dan" : ['atau', 'tetapi'],
-        "atau" : ['dan', 'serta', 'tetapi'],
+        "dan" : ['tetapi'],
+        "atau" : ['serta', 'tetapi'],
         "melainkan" : ['dan', 'atau', 'sedangkan', 'serta', 'tetapi'],
         "sedangkan" : ['dan', 'atau', 'melainkan', 'serta', 'tetapi'],
         "serta" : ['atau', 'melainkan', 'sedangkan', 'tetapi'],
@@ -230,7 +230,7 @@ class ConjunctionError(Error):
     }
 
     error_type_id = "CONJ"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -259,7 +259,7 @@ class ConjunctionError(Error):
 class DeterminerError(Error):
 
     error_type_id = "DET"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     penggolong_word_list = ['orang', 'ekor', 'buah', 'batang' , 'bentuk', 'bidang' , 'belah', 'helai', 'bilah', 'utas', 'potong', 'tangkai', 'butir', 'pucuk', 'carik', 'rumpun', 'keping', 'biji', 'kuntum', 'patah', 'laras', 'kerat']
     penggolong_subtitution_choices = ['orang', 'ekor', 'buah', 'batang' , 'bentuk', 'bidang' , 'belah', 'helai', 'bilah', 'utas', 'potong', 'tangkai', 'butir', 'pucuk', 'carik', 'rumpun', 'keping', 'biji', 'kuntum', 'patah']
@@ -291,7 +291,7 @@ class MorphologyError(Error):
     deprel_nominals = ["nsubj", "obj", "iobj", "obl"]
 
     error_type_id = "MORPH"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -344,7 +344,7 @@ class MorphologyError(Error):
 class NounError(Error):
 
     error_type_id = "NOUN"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -370,7 +370,7 @@ class NounError(Error):
 class NounInflectionError(Error):
 
     error_type_id = "NOUN:INFL"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -416,7 +416,7 @@ class NounInflectionError(Error):
 class OrthographyError(Error):
     
     error_type_id = "ORTH"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     orth_prefix_types = ["di", "ke", "ter", "ber", "per"]
     orth_suffix_types = ["nya", "lah", "pun", "kah"]
@@ -496,7 +496,7 @@ class ParticleError(Error):
     particle_list = ["lah", "kah", "pun"]
 
     error_type_id = "PART"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -564,7 +564,7 @@ class PrepositionError(Error):
     always_treat_as_ADP_list = []
 
     error_type_id = "PREP"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -596,7 +596,7 @@ class PrepositionError(Error):
 class PronounError(Error):
     
     error_type_id = "PRON"
-    max_ratio = 0.1
+    max_ratio = 0.075
     
     persona_pronoun_errors = {
         "tunggal_pertama": [
@@ -682,7 +682,7 @@ class PronounError(Error):
 class PunctuationError(Error):
 
     error_type_id = "PUNCT"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -729,7 +729,7 @@ class PunctuationError(Error):
         elif token.upos == 'PUNCT' and token.lemma == ".":
             # Do this 1 in 50 occurence of ".",
             # So PUNCT error will not be saturated by this kind of error
-            if random.randrange(1, 40) == 1:
+            if random.randrange(1, 30) == 1:
                 self.original_token_list = [token]
                 self.error_token_list = [""]
 
@@ -742,7 +742,7 @@ class PunctuationError(Error):
 class SpellingError(Error): #Membuat spelling error
 
     error_type_id = "SPELL"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -800,7 +800,7 @@ class SpellingError(Error): #Membuat spelling error
 class VerbError(Error):
 
     error_type_id = "VERB"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -829,7 +829,7 @@ class VerbInflectionError(Error):
     bahasa_asing = ['memproduksi','memproses','memroses','mensukseskan','menyukseskan']
     
     error_type_id = "VERB:INFL"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -905,7 +905,7 @@ class VerbTenseError(Error):
     no_passive_state = ["menjadi", "merupakan"]
 
     error_type_id = "VERB:TENSE"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
@@ -997,7 +997,7 @@ class VerbTenseError(Error):
 class WordOrderError(Error):
 
     error_type_id = "WO"
-    max_ratio = 0.1
+    max_ratio = 0.075
 
     def __init__(self, token, sentence):
         super().__init__(token, sentence)
